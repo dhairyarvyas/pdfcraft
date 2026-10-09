@@ -154,6 +154,15 @@ impl Automation {
                 let edit = Edit::SetInfo { key: a.str("key")?.into(), value: a.str("value")?.into() };
                 self.apply(&a, edit)?
             }
+            "page_invert_colors" => {
+                let id = self.doc(&a)?.id;
+                let enabled = a.opt_bool("enabled")?.ok_or_else(|| failed("enabled is required"))?;
+                let changed = self.session.set_page_colors_inverted(id, enabled);
+                if changed {
+                    self.renderers.remove(&id);
+                }
+                json!({ "doc": id.0, "enabled": enabled, "changed": changed })
+            }
             "page_render" => return self.page_render(&a).map(|c| vec![c]),
             "comment_image_preview" => return self.comment_image_preview(&a),
             "text_extract" => self.text_extract(&a)?,
@@ -1341,10 +1350,7 @@ impl Automation {
 
     fn renderer(&mut self, id: DocId) -> Result<&mut PageRenderer> {
         let doc = self.session.get(id).ok_or_else(|| failed("no such document"))?;
-        let fresh = || {
-            let config = RenderConfig { password: doc.password.as_deref().map(Arc::from), ..Default::default() };
-            (doc.display.clone(), PageRenderer::new(doc.display.clone(), config))
-        };
+        let fresh = || (doc.display.clone(), PageRenderer::new(doc.display.clone(), doc.render_config()));
         let entry = self.renderers.entry(id).or_insert_with(fresh);
         if !Arc::ptr_eq(&entry.0, &doc.display) {
             *entry = fresh();

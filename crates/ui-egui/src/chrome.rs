@@ -149,6 +149,11 @@ pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     ui.spacing_mut().item_spacing.x = 4.0;
                     let has_doc = app.active.is_some();
                     ui.add_enabled_ui(has_doc, |ui| {
+                        let inverted =
+                            app.active.and_then(|i| app.views.get(i)).and_then(|v| app.session.get(v.id)).is_some_and(|d| d.page_colors_inverted());
+                        if icons::button(ui, "contrast", 32.0, inverted, tl!("Invert page colors")).clicked() {
+                            app.run_command("view.invert_colors");
+                        }
                         if icons::button(ui, "printer", 32.0, false, tl!("Print (⌘P)")).clicked() {
                             app.run_command("print.dialog");
                         }

@@ -142,6 +142,9 @@ pub fn tools() -> Vec<ToolDef> {
         )),
         t("doc_set_info", "Set document metadata", "Set a document information entry such as Title, Author, Subject or Keywords. Undoable.")
             .with(schema(json!({ "doc": doc(), "key": { "type": "string" }, "value": { "type": "string" } }), &["doc", "key", "value"])),
+        t("page_invert_colors", "Invert page colors", "Set reading-only page color inversion. Does not edit the PDF or affect saved bytes.")
+            .cmd("view.invert_colors")
+            .with(schema(json!({ "doc": doc(), "enabled": { "type": "boolean" } }), &["doc", "enabled"])),
         t("page_render", "Render a page", "Render one page to a PNG image (default 96 dpi, at most 600).")
             .ro()
             .with(schema(json!({ "doc": doc(), "page": { "type": "integer", "minimum": 1 }, "dpi": { "type": "number", "minimum": 1, "maximum": 600 } }), &["doc", "page"])),

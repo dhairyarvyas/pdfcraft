@@ -35,3 +35,14 @@ covers every target starting with it (`pdfcraft*=debug`). The logger is
 | `WGPU_BACKEND` | Graphics backend; by default Windows uses Direct3D 12, falling back to OpenGL |
 | `CRAFT_FONTS_DIR` | Build time: a [craft-fonts](https://github.com/storytold/craft-fonts) checkout to embed (Japanese fonts) |
 | `PDFCRAFT_SYSTEM_FONTS` | `0` stops the desktop app from using an installed font for characters its embedded fonts lack (`cargo xtask screenshots` sets it) |
+
+## Page color inversion
+
+The top-bar **Invert page colors** button and `view.invert_colors` command toggle inversion for
+one open document. This session-only reading preference does not dirty the document or change
+saved PDF content. RGB colors, including images, are inverted; alpha is preserved.
+
+Headless callers use `page_invert_colors` with `{"doc": 1, "enabled": true}` before `page_render`.
+The UI control channel accepts `ui.set` with `{"key": "invert-colors", "value": "on"}` (or `off`)
+and reports the active document's setting as `ui.state.page_colors_inverted`. Headless screenshots
+can use `--invert-colors on` with the `shot` example.

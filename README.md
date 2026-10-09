@@ -115,6 +115,7 @@ PdfCraft renders PDFs with care for the details that make a page feel right: ker
 - **Built to survive bad files.** Every page renders in isolation and damaged documents are repaired. Across the 983-file pdf.js test corpus the result is 0 crashes.
 - **Layouts for every task:** continuous, single page, two-up, view rotation, full screen and a distraction-free Read mode.
 - **Light and dark themes**, both designed to be easy on the eyes for long sessions.
+- **Dark pages, too.** Toggle **Invert page colors** with the contrast (half-filled circle) button beside Print in the top bar (also in the View menu). Each open document keeps its own setting; all page colors, including images, invert without changing the saved PDF.
 
 <table>
 <tr>

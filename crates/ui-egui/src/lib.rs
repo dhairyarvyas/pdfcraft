@@ -1283,6 +1283,16 @@ impl PdfCraftApp {
                 };
                 self.set_theme_preference(preference);
             }
+            ("invert-colors", Some(view)) => {
+                let enabled = match value {
+                    "on" => true,
+                    "off" => false,
+                    _ => return Err("invert-colors must be on or off".into()),
+                };
+                if self.session.set_page_colors_inverted(view.id, enabled) {
+                    view.invalidate_page_colors();
+                }
+            }
             ("panel", _) => {
                 self.right = match value {
                     "comments" => Some(RightPanel::Comments),

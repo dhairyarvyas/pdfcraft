@@ -48,6 +48,8 @@ pub struct RenderConfig {
     pub layers: Arc<Vec<(i32, i32, bool)>>,
     /// View ▸ Hide all comments: markup annotations aren't drawn (fields and links still are).
     pub hide_comments: bool,
+    /// Invert page RGB colors for reading; never changes the PDF bytes.
+    pub invert_colors: bool,
 }
 
 impl RenderConfig {
@@ -225,10 +227,24 @@ fn render_page<'a>(pdf: &'a Pdf, cache: &RenderCache<'a>, settings: &Interpreter
     }
 }
 
-fn finish(req: RenderRequest, start: Stopwatch, r: Result<Output, (String, bool)>) -> RenderedPage {
+/// Invert premultiplied RGB while preserving alpha (including transparent pixels).
+fn invert_rgba(rgba: &mut [u8]) {
+    for [r, g, b, a] in rgba.as_chunks_mut::<4>().0 {
+        *r = a.saturating_sub(*r);
+        *g = a.saturating_sub(*g);
+        *b = a.saturating_sub(*b);
+    }
+}
+
+fn finish(req: RenderRequest, start: Stopwatch, r: Result<Output, (String, bool)>, invert_colors: bool) -> RenderedPage {
     let millis = start.millis();
     match r {
-        Ok((width, height, rgba, text)) => RenderedPage { request: req, width, height, rgba, error: None, text, millis },
+        Ok((width, height, mut rgba, text)) => {
+            if invert_colors {
+                invert_rgba(&mut rgba);
+            }
+            RenderedPage { request: req, width, height, rgba, error: None, text, millis }
+        }
         Err((e, _)) => RenderedPage { request: req, width: 0, height: 0, rgba: Vec::new(), error: Some(e), text: None, millis },
     }
 }
@@ -255,13 +271,15 @@ impl PageRenderer {
     /// Render one page. Never panics.
     pub fn render(&mut self, req: RenderRequest) -> RenderedPage {
         let start = Stopwatch::start();
-        let Some(pdf) = self.pdf.as_ref() else { return finish(req, start, Err(("the document could not be parsed".into(), false))) };
+        let Some(pdf) = self.pdf.as_ref() else {
+            return finish(req, start, Err(("the document could not be parsed".into(), false)), self.config.invert_colors);
+        };
         let cache = RenderCache::new();
         let r = render_page(pdf, &cache, &self.settings, req);
         if matches!(r, Err((_, true))) {
             self.pdf = parse(&self.bytes, self.config.password.as_deref());
         }
-        finish(req, start, r)
+        finish(req, start, r, self.config.invert_colors)
     }
 }
 
@@ -505,7 +523,7 @@ fn worker(id: usize, bytes: Arc<Vec<u8>>, config: RenderConfig, shared: Arc<Shar
                 return;
             }
             let panicked = matches!(r, Err((_, true)));
-            if out.send(finish(req, start, r)).is_err() {
+            if out.send(finish(req, start, r, config.invert_colors)).is_err() {
                 return;
             }
             if panicked {
@@ -517,6 +535,16 @@ fn worker(id: usize, bytes: Arc<Vec<u8>>, config: RenderConfig, shared: Arc<Shar
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn color_inversion_preserves_premultiplied_alpha() {
+        let mut rgba = vec![255, 255, 255, 255, 0, 0, 0, 255, 10, 20, 30, 128, 0, 0, 0, 0];
+        let original = rgba.clone();
+        super::invert_rgba(&mut rgba);
+        assert_eq!(rgba, vec![0, 0, 0, 255, 255, 255, 255, 255, 118, 108, 98, 128, 0, 0, 0, 0]);
+        super::invert_rgba(&mut rgba);
+        assert_eq!(rgba, original);
+    }
+
     #[test]
     fn watchdog_skips_a_stuck_page_and_keeps_rendering() {
         use super::*;

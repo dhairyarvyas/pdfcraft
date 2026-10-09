@@ -709,3 +709,40 @@ fn compare_page_with_raster(h: &mut Harness<'static, PdfCraftApp>, pdf: &[u8], z
     }
     (sum as f64 / n as f64, worst)
 }
+
+#[test]
+fn top_bar_inverts_page_colors_and_restores_them() {
+    use egui_kittest::kittest::Queryable;
+    let _gpu = gpu();
+    let mut h = harness(&[("zoom", "50")]);
+    let settle = |h: &mut Harness<'static, PdfCraftApp>| {
+        for _ in 0..200 {
+            h.run_steps(2);
+            if !h.state().render_pending() {
+                h.run_steps(2);
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        panic!("page rendering did not settle");
+    };
+    settle(&mut h);
+    let id = h.state().views[0].id;
+    let original = h.state().session.save_bytes(id).unwrap();
+    let sample = |h: &mut Harness<'static, PdfCraftApp>| {
+        let at = rect(h, 0).unwrap().center();
+        let ppp = h.ctx.pixels_per_point();
+        *h.render().unwrap().get_pixel((at.x * ppp) as u32, (at.y * ppp) as u32)
+    };
+    assert_eq!(sample(&mut h), image::Rgba([255, 255, 255, 255]));
+    h.get_by_label("Invert page colors").click();
+    settle(&mut h);
+    assert!(h.state().session.get(id).unwrap().page_colors_inverted());
+    assert_eq!(sample(&mut h), image::Rgba([0, 0, 0, 255]));
+    assert!(!h.state().session.get(id).unwrap().dirty);
+    assert_eq!(h.state().session.save_bytes(id).unwrap(), original);
+    h.get_by_label("Invert page colors").click();
+    settle(&mut h);
+    assert!(!h.state().session.get(id).unwrap().page_colors_inverted());
+    assert_eq!(sample(&mut h), image::Rgba([255, 255, 255, 255]));
+}

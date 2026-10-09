@@ -2909,3 +2909,39 @@ mod combine_argument_tests {
         }
     }
 }
+
+#[test]
+fn page_color_inversion_is_reversible_and_does_not_edit_the_pdf() {
+    let dir = workdir("invert-colors");
+    let mut a = auto(&dir);
+    let doc = ok(&mut a, "doc_open", json!({ "path": "a.pdf" }))["doc"].as_u64().unwrap();
+    let other = ok(&mut a, "doc_open", json!({ "path": "b.pdf" }))["doc"].as_u64().unwrap();
+    let pixels = |a: &mut Automation, doc| {
+        let content = a.call("page_render", &json!({ "doc": doc, "page": 1, "dpi": 72 })).unwrap();
+        let Content::Png { data, .. } = &content[0] else { panic!("expected PNG") };
+        let mut reader = png::Decoder::new(std::io::Cursor::new(data)).read_info().unwrap();
+        let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+        let frame = reader.next_frame(&mut pixels).unwrap();
+        pixels.truncate(frame.buffer_size());
+        pixels
+    };
+    let normal = pixels(&mut a, doc);
+    let other_normal = pixels(&mut a, other);
+    assert_eq!(ok(&mut a, "page_invert_colors", json!({ "doc": doc, "enabled": true }))["changed"], true);
+    let inverted = pixels(&mut a, doc);
+    assert_eq!(inverted.len(), normal.len());
+    for (before, after) in normal.as_chunks::<4>().0.iter().zip(inverted.as_chunks::<4>().0) {
+        assert_eq!(&after[..3], &[255 - before[0], 255 - before[1], 255 - before[2]]);
+        assert_eq!(after[3], before[3]);
+    }
+    assert_eq!(pixels(&mut a, other), other_normal, "other documents keep their colors");
+    assert_eq!(ok(&mut a, "page_invert_colors", json!({ "doc": doc, "enabled": true }))["changed"], false);
+    let id = pdfcraft_engine::DocId(doc);
+    assert!(!a.session().get(id).unwrap().dirty);
+    assert!(a.session().get(id).unwrap().can_undo().is_none());
+    assert_eq!(a.session().save_bytes(id).unwrap().as_slice(), std::fs::read(dir.join("a.pdf")).unwrap());
+    ok(&mut a, "page_invert_colors", json!({ "doc": doc, "enabled": false }));
+    assert_eq!(pixels(&mut a, doc), normal);
+    assert!(a.call("page_invert_colors", &json!({ "doc": doc, "enabled": "yes" })).is_err());
+    assert!(a.call("page_invert_colors", &json!({ "doc": doc })).is_err());
+}

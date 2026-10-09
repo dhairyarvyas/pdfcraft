@@ -161,6 +161,15 @@ impl PdfCraftApp {
                 }
             }
             "view.read_mode" => self.mode = if self.mode == Mode::Read { Mode::AllTools } else { Mode::Read },
+            "view.invert_colors" => {
+                if let Some(i) = active {
+                    let id = self.views[i].id;
+                    let enabled = !self.session.get(id).is_some_and(|d| d.page_colors_inverted());
+                    if self.session.set_page_colors_inverted(id, enabled) {
+                        self.views[i].invalidate_page_colors();
+                    }
+                }
+            }
             "view.theme" => {
                 let next = if self.theme == ThemeKind::Light { ThemePreference::Dark } else { ThemePreference::Light };
                 self.set_theme_preference(next);

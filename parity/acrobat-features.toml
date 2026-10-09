@@ -10012,3 +10012,15 @@ commands = []
 tools = []
 evidence = []
 notes = ""
+
+[[feature]]
+id = "view.invert-page-colors"
+title = "Invert page colors for dark reading"
+area = "B"
+tier = "P2"
+milestone = "M3"
+status = "shipped"
+commands = ["view.invert_colors"]
+tools = ["page_invert_colors"]
+evidence = ["crates/ui-egui/tests/view.rs::top_bar_inverts_page_colors_and_restores_them", "crates/automation/tests/automation.rs::page_color_inversion_is_reversible_and_does_not_edit_the_pdf"]
+notes = "Top-bar toggle inverts all rendered page RGB colors, including images, per document. Reading preference only; saved PDF bytes stay unchanged. UI pixel-toggle and headless render/save regression tests pass."

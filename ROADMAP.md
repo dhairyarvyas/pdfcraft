@@ -12,15 +12,15 @@ Detailed task lists and acceptance tests are in `plan/execution-plan.md` (local-
 
 The unit is **wall-clock hours of agent work** (Claude Opus 5.5 coding continuously; human review time not included).
 
-**Where we are (2026-10-07, measured by `cargo xtask parity` over 806 tracked Acrobat Pro features; 23 more are Adobe-cloud-only and out of scope):**
+**Where we are (2026-10-09, measured by `cargo xtask parity` over 807 tracked features; 23 more are Adobe-cloud-only and out of scope):**
 
 | Tier | Features | Shipped | Partial | Shipped % | Weighted % (partial = ½) |
 |---|---|---|---|---|---|
-| P0 (must-have for 1.0) | 251 | 222 | 25 | 88.4% | 93.4% |
-| P1 | 326 | 174 | 38 | 53.4% | 59.2% |
-| P2 | 186 | 14 | 7 | 7.5% | 9.4% |
+| P0 (must-have for 1.0) | 251 | 224 | 24 | 89.2% | 94.0% |
+| P1 | 326 | 175 | 41 | 53.7% | 60.0% |
+| P2 | 187 | 17 | 9 | 9.1% | 11.5% |
 | P3 | 43 | 1 | 0 | 2.3% | 2.3% |
-| **All** | **806** | **411** | **70** | **51.0%** | **55.3%** |
+| **All** | **807** | **417** | **74** | **51.7%** | **56.3%** |
 
 **Effort-weighted parity: ≈ 30–35%.** Feature counts overstate progress: the remaining features include the hardest ones (our own renderer and font engine, editing existing text and reflow, OCR beyond Latin, XFA, PDF/A/X/UA preflight, Office export, long-term signature validation). Weighting each milestone by its estimated size gives about a third of the total work done. See **[Honest assessment](#honest-assessment-2026-10-05)** for what the numbers don't show.
 
@@ -92,7 +92,7 @@ Hours are for a single agent (low–high). "Done" is the estimated fraction of t
 | M0 | Skeleton: workspace, xtask gates, CI | 15–30 | 92% | 2–4 | GitHub workflow, `deny.toml` (licence audit of every dependency), parity checklist (826 features, `xtask parity`) done. Missing: remaining crate stubs, testkit/oracle crates |
 | M1 | COS: filters, crypt, parser, xref, writer | 120–200 | 78% | 25–45 | Done:<br>- filters and crypt: every standard-security revision R2–R6 (RC4, AES-128/256), SASLprep, permissions, creating encryption;<br>- cos: parse and repair (including invalid xref object-number ranges), decrypt on load, re-encrypt on save, incremental and full writing.<br>Corpus: open/edit/save passes on 958 files, and all 7 password-protected files open.<br>Full saves now pack objects into compressed object streams. Fuzzing runs nightly (`xtask fuzz`). Missing: ≥ 250 tests, own image codecs |
 | M2 | Model, render, text | 200–350 | 15% | 170–300 | hayro bootstrap renderer (vendored patches). Text extraction reaches word-F1 0.98 against pdftotext. Missing: model crate, fonts, DisplayList, renderer independent of hayro |
-| M3 | Viewer app (native + web) | 80–150 | 88% | 10–19 | Acrobat-style shell, find, select, panels, tiles, web build, UI control channel for agents (opt-in). Missing: 60 fps test on a 500-page document, snapshot tests of every panel Done since: fit visible, document title in the window; Linux middle-button scrolling; shared three-state theme preferences in the toolbar, View menu and control channel. |
+| M3 | Viewer app (native + web) | 80–150 | 88% | 10–19 | Acrobat-style shell, find, select, panels, tiles, web build, UI control channel for agents (opt-in). Missing: 60 fps test on a 500-page document, snapshot tests of every panel Done since: fit visible, document title in the window; Linux middle-button scrolling; shared three-state theme preferences in the toolbar, View menu and control channel. Per-document page-color inversion is available in the top bar, View menu and headless tools, with pixel-level UI tests. |
 | M4 | Engine, history, save, organize | 100–180 | 95% | 9–17 | Done:<br>- command registry (menus, shortcuts and palette all use it);<br>- undo/redo; incremental, atomic and encrypted saves;<br>- autosave and crash recovery;<br>- organize, combine, extract, split and insert-from-file, with identical fonts and images stored once;<br>- CLI `edit/combine/extract/split`.<br>Done since: Combine files in its own tab (sortable, resizable columns; folders; early warnings; unlocking protected files), bookmark editing, page labels (Number pages), CLI `run`, Set Page Boxes, Crop tool, Duplicate pages, Ctrl+A / Cmd+A to select all pages in Organize. Missing: Replace pages, page transitions, recovery on the web |
 | M5 | Comments (all annotation types, XFDF) | 120–200 | 88% | 15–25 | Done: notes, highlight/underline/strikeout/squiggly, text boxes, ink, lines, arrows, rectangles, ovals, stamps (dynamic, Sign Here, Standard Business), with appearance streams; replies, status, checkmarks, locking, move/resize/restyle/delete; properties dialog; panel filter and sort; hide all; summaries (comments only); XFDF/FDF import and export; flatten; Fill & Sign; agent tools. Done since: polygons, connected lines, clouds, callouts, inserted text, colour and checkmark filters; image signature pointer previews, selection handles and live image movement/resizing with proportional corners and independent edge handles. Missing: custom stamps, replace-text proposals, summary layouts with the page |
 | M6 | Forms + JavaScript | 160–320 | 45% | 95–185 | Done: filling all field types with regenerated appearances; Prepare a form (every field type, move/resize/delete, Field Properties General/Appearance/Position/Options/Format/Validate/Calculate); Acrobat's AF format/keystroke/validate/calculate functions and simplified field notation run natively in Acrobat's event order; tab order; push-button actions; flatten; agent tools. Form data exchange (FDF, XFDF, XML, CSV, text) done. Done since: JavaScript engine (boa, sandboxed) running custom keystroke/validate/calculate/format and button scripts, document JavaScripts, console. Missing: Actions tab, wider object model (annotations, layers, dialogs), XFA |
@@ -124,6 +124,8 @@ M0 → M1 → M2 → M3 → M4 must happen in order. After M4, M5–M12 can run 
 - Unmeasured fidelity: without an Acrobat comparison harness, quality gaps surface as user reports.
 
 ## Log
+
+- **2026-10-09 (M3, dark page reading):** Added a selected-state contrast (half-filled circle) button beside Print and a View-menu command to invert rendered page colors per open document. Selection and search results survive toggles; saved PDF content stays unchanged. Engine API, `page_invert_colors` automation tool, UI control option, all nine language catalogs and attribution hashes are included. Workspace tests (1,246 passed), Clippy, web compilation and a real-viewer screenshot pass. M3 remains about 88%; overall effort estimate unchanged (about 30–35%).
 
 - **2026-10-08 (M5.7, signature resize proportions):** Image signature corner handles preserve the embedded image's original aspect ratio and anchor the opposite corner; edge midpoint handles stretch width or height independently. The live preview and committed edit share the constrained geometry, including page/view rotation and reopened PDFs whose rectangles were stretched previously. Synthetic UI tests cover all corners, edge resizing, undo and redo. Milestone and effort estimates unchanged.
 - **2026-10-08 (M5.7, live signature adjustment):** Embedded image signatures resize and move with every pointer frame. Movement hides the frame and handles, which return on release; Escape cancels without committing. A cached background preserves the page beneath the image, and only the completed gesture enters undo history. The read-only engine preview and `comment_image_preview` tool share bounded image decoding and render layers. Synthetic pixel tests cover live geometry, alpha, coloured page content, rotation, cancellation and encrypted save/reopen. Milestone and effort estimates unchanged.

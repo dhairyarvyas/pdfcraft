@@ -592,6 +592,7 @@ impl Host for crate::PdfCraftApp {
             "palette_open": self.palette_open,
             "theme": format!("{:?}", self.theme),
             "theme_preference": self.theme_preference,
+            "page_colors_inverted": self.active.and_then(|i| self.views.get(i)).and_then(|v| self.session.get(v.id)).is_some_and(|d| d.page_colors_inverted()),
             "language": self.language,
             "notice": self.toast.as_ref().map(|t| t.0.clone()),
             "progress": self.progress_notice.as_ref().map(|p| json!({ "label": p.label, "fraction": p.fraction })),

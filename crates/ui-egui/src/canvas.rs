@@ -494,6 +494,18 @@ impl DocView {
         }
     }
 
+    /// Refresh page colors while keeping selection, text, and search results intact.
+    pub fn invalidate_page_colors(&mut self) {
+        for p in self.pages.values_mut() {
+            p.tag = STALE_TAG;
+        }
+        self.stale_thumbs.extend(self.thumbs.keys().copied());
+        self.tiles.clear();
+        self.errors.clear();
+        self.waiting_since.clear();
+        self.last_queue.clear();
+    }
+
     /// Only `page` changed (a comment was added, edited or removed): re-render that page and
     /// re-read its text, keep everything else.
     pub fn page_changed(&mut self, page: usize) {

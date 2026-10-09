@@ -347,6 +347,16 @@ impl Document {
         self.config.hide_comments
     }
 
+    /// Current reading-only page color preference.
+    pub fn page_colors_inverted(&self) -> bool {
+        self.config.invert_colors
+    }
+
+    /// Rendering preferences shared by the viewer and headless page renderer.
+    pub fn render_config(&self) -> RenderConfig {
+        self.config.clone()
+    }
+
     pub fn can_undo(&self) -> Option<&str> {
         self.editor.as_ref().and_then(|e| e.undo.last()).map(|(l, ..)| l.as_str())
     }
@@ -2855,6 +2865,19 @@ impl Session {
             return false;
         }
         doc.config.hide_comments = hide;
+        doc.renderer = RenderPool::new(doc.display.clone(), render_threads(), doc.config.clone());
+        doc.generation += 1;
+        true
+    }
+
+    /// Set reading-only page inversion. Rebuild the render pool without editing or dirtying
+    /// the document. Generation invalidation prevents old colors from surviving a toggle.
+    pub fn set_page_colors_inverted(&mut self, id: DocId, enabled: bool) -> bool {
+        let Some(doc) = self.docs.iter_mut().find(|d| d.id == id) else { return false };
+        if doc.config.invert_colors == enabled {
+            return false;
+        }
+        doc.config.invert_colors = enabled;
         doc.renderer = RenderPool::new(doc.display.clone(), render_threads(), doc.config.clone());
         doc.generation += 1;
         true
