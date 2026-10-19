@@ -32,13 +32,16 @@ fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, P
 fn home_shows_welcome_and_tools() {
     let h = harness(|_| {});
     h.get_by_label_contains("Welcome to PdfCraft");
-    assert!(h.query_all_by_label("Organize pages").count() >= 2, "tool list + home card");
+    assert!(!h.state().left_open);
+    assert!(h.query_all_by_label("Organize pages").count() >= 1, "home card");
     h.get_by_label("Open file");
 }
 
 #[test]
 fn every_catalog_tool_is_listed_after_view_more() {
     let mut h = harness(|_| {});
+    h.get_by_label("All tools").click();
+    h.run_steps(3);
     h.get_by_label("View more").click();
     h.run_steps(3);
     for g in pdfcraft_engine::catalog::TOOL_GROUPS {
@@ -49,7 +52,10 @@ fn every_catalog_tool_is_listed_after_view_more() {
 #[test]
 fn opening_a_pdf_shows_comments_and_bookmarks() {
     let mut h = harness(|app| app.open_bytes("fixture.pdf", None, FIXTURE.to_vec()).expect("fixture opens"));
-    // Documents with comments open on the Comments panel, like Acrobat.
+    assert!(!h.state().left_open);
+    assert!(h.state().right.is_none());
+    h.get_by_label("Comments").click();
+    h.run_steps(3);
     h.get_by_label_contains("Check the numbers");
     h.get_by_label("Bookmarks").click();
     h.run_steps(3);
@@ -350,13 +356,14 @@ fn newly_opened_pdfs_use_the_default_workspace() {
     assert_eq!(app.mode, Mode::Edit, "changing the preference affects future opens");
     app.open_bytes("second.pdf", None, FIXTURE.to_vec()).unwrap();
     assert_eq!(app.mode, Mode::Read);
-    // PDF Initial View is independent of the workspace preference.
+    // PDF Initial View cannot open a panel or override the user's default layout.
     let pdf =
         String::from_utf8(FIXTURE.to_vec()).unwrap().replace("/Outlines 6 0 R", "/Outlines 6 0 R /PageLayout /TwoColumnLeft /PageMode /UseOutlines");
     app.open_bytes("initial-view.pdf", None, pdf.into_bytes()).unwrap();
     assert_eq!(app.mode, Mode::Read);
-    assert_eq!(app.views.last().unwrap().layout, pdfcraft_ui_egui::canvas::PageLayout::TwoUp);
-    assert_eq!(app.right, Some(pdfcraft_ui_egui::RightPanel::Bookmarks));
+    assert_eq!(app.views.last().unwrap().layout, pdfcraft_ui_egui::canvas::PageLayout::Continuous);
+    assert!(app.right.is_none());
+    assert!(!app.left_open);
 }
 
 #[test]

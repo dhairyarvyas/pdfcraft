@@ -39,10 +39,17 @@ covers every target starting with it (`pdfcraft*=debug`). The logger is
 ## Page color inversion
 
 The top-bar **Invert page colors** button and `view.invert_colors` command toggle inversion for
-one open document. This session-only reading preference does not dirty the document or change
+one open document. New viewer tabs start with inversion enabled. This session-only reading preference does not dirty the document or change
 saved PDF content. RGB colors, including images, are inverted; alpha is preserved.
 
 Headless callers use `page_invert_colors` with `{"doc": 1, "enabled": true}` before `page_render`.
 The UI control channel accepts `ui.set` with `{"key": "invert-colors", "value": "on"}` (or `off`)
 and reports the active document's setting as `ui.state.page_colors_inverted`. Headless screenshots
 can use `--invert-colors on` with the `shot` example.
+
+## Viewer opening defaults
+
+All tools and the right sidebar start closed. Open them using the toolbar tabs or sidebar icons.
+Opening a PDF does not automatically expand its bookmarks, comments or other navigation panels.
+New tabs use Preferences → Default page display (continuous scrolling by default), even when
+the PDF requests a different layout. The PDF’s opening page and zoom are still honored.

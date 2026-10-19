@@ -408,6 +408,7 @@ impl PdfCraftApp {
         let Some((_, id)) = self.active_ids() else { return };
         match self.session.open_revision(id, n) {
             Ok(new) => {
+                self.session.set_page_colors_inverted(new, true);
                 let Some(doc) = self.session.get(new) else { return };
                 self.views.push(DocView::new(new, &doc.info, self.view_defaults));
                 self.active = Some(self.views.len() - 1);
@@ -424,6 +425,7 @@ impl PdfCraftApp {
         let name = format!("{} (signed version)", doc.name.trim_end_matches(".pdf"));
         match self.session.open(format!("{name}.pdf"), None, std::sync::Arc::new(bytes), doc.password.clone().as_deref()) {
             Ok(new) => {
+                self.session.set_page_colors_inverted(new, true);
                 let Some(doc) = self.session.get(new) else { return };
                 self.views.push(DocView::new(new, &doc.info, self.view_defaults));
                 self.active = Some(self.views.len() - 1);

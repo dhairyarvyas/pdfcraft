@@ -100,8 +100,8 @@ impl PageLayout {
     }
 }
 
-/// How a newly opened document is shown (Preferences ▸ Documents and view). A PDF that asks
-/// for its own layout or zoom gets that instead.
+/// How a newly opened document is shown (Preferences ▸ Documents and view). A PDF can request
+/// its own zoom, but the user's layout preference takes precedence over the PDF's layout.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ViewDefaults {
     pub layout: PageLayout,

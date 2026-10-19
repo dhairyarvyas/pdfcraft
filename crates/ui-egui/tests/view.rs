@@ -87,7 +87,7 @@ fn middle_button_scrolling_keeps_page_colours_in_both_themes() {
     let _gpu = gpu();
     for theme in ["light", "dark"] {
         for organize in [false, true] {
-            let mut h = harness(&[("zoom", "50")]);
+            let mut h = harness(&[("zoom", "50"), ("invert-colors", "off")]);
             h.state_mut().set_option("theme", theme).unwrap();
             h.state_mut().set_option("organize", if organize { "on" } else { "off" }).unwrap();
             for _ in 0..100 {
@@ -691,7 +691,8 @@ fn compare_page_with_raster(h: &mut Harness<'static, PdfCraftApp>, pdf: &[u8], z
     let r = rect(h, 0).expect("page 1");
     let img = h.render().expect("renders");
     let scale = zoom * 96.0 / 72.0 * ppp;
-    let mut renderer = pdfcraft_render::PageRenderer::new(std::sync::Arc::new(pdf.to_vec()), pdfcraft_render::RenderConfig::default());
+    let config = h.state().session.get(h.state().views[0].id).unwrap().render_config();
+    let mut renderer = pdfcraft_render::PageRenderer::new(std::sync::Arc::new(pdf.to_vec()), config);
     let page = renderer.render(pdfcraft_render::RenderRequest { page: 0, kind: pdfcraft_render::RequestKind::Pixels, tile: None, scale, tag: 0 });
     assert!(page.error.is_none(), "{:?}", page.error);
     // Compare the lined area (page x 40..270 pt, y 60..330 pt from the top), screen against raster.
@@ -711,7 +712,27 @@ fn compare_page_with_raster(h: &mut Harness<'static, PdfCraftApp>, pdf: &[u8], z
 }
 
 #[test]
-fn top_bar_inverts_page_colors_and_restores_them() {
+fn new_tabs_default_to_dark_pages_independently() {
+    let mut app = PdfCraftApp::new();
+    app.open_bytes("first.pdf", None, PAGES.to_vec()).unwrap();
+    let first = app.views[0].id;
+    let original = app.session.save_bytes(first).unwrap();
+    assert!(app.session.get(first).unwrap().page_colors_inverted());
+    assert!(!app.session.get(first).unwrap().dirty);
+    assert_eq!(app.session.save_bytes(first).unwrap(), original);
+
+    app.run_command("view.invert_colors");
+    assert!(!app.session.get(first).unwrap().page_colors_inverted());
+    app.open_bytes("second.pdf", None, PAGES.to_vec()).unwrap();
+    assert!(app.session.get(app.views[1].id).unwrap().page_colors_inverted());
+    assert!(!app.session.get(first).unwrap().page_colors_inverted());
+
+    app.open_bytes("created.txt", None, b"A newly created PDF".to_vec()).unwrap();
+    assert!(app.session.get(app.views[2].id).unwrap().page_colors_inverted());
+}
+
+#[test]
+fn dark_pages_are_default_and_top_bar_restores_original_colors() {
     use egui_kittest::kittest::Queryable;
     let _gpu = gpu();
     let mut h = harness(&[("zoom", "50")]);
@@ -734,15 +755,16 @@ fn top_bar_inverts_page_colors_and_restores_them() {
         let ppp = h.ctx.pixels_per_point();
         *h.render().unwrap().get_pixel((at.x * ppp) as u32, (at.y * ppp) as u32)
     };
-    assert_eq!(sample(&mut h), image::Rgba([255, 255, 255, 255]));
-    h.get_by_label("Invert page colors").click();
-    settle(&mut h);
     assert!(h.state().session.get(id).unwrap().page_colors_inverted());
     assert_eq!(sample(&mut h), image::Rgba([0, 0, 0, 255]));
-    assert!(!h.state().session.get(id).unwrap().dirty);
-    assert_eq!(h.state().session.save_bytes(id).unwrap(), original);
     h.get_by_label("Invert page colors").click();
     settle(&mut h);
     assert!(!h.state().session.get(id).unwrap().page_colors_inverted());
     assert_eq!(sample(&mut h), image::Rgba([255, 255, 255, 255]));
+    assert!(!h.state().session.get(id).unwrap().dirty);
+    assert_eq!(h.state().session.save_bytes(id).unwrap(), original);
+    h.get_by_label("Invert page colors").click();
+    settle(&mut h);
+    assert!(h.state().session.get(id).unwrap().page_colors_inverted());
+    assert_eq!(sample(&mut h), image::Rgba([0, 0, 0, 255]));
 }

@@ -600,7 +600,7 @@ impl PdfCraftApp {
             view_defaults: Default::default(),
             mode_override: None,
             left: LeftPanel::AllTools,
-            left_open: true,
+            left_open: false,
             right: None,
             quick_tool: QuickTool::Select,
             space_hand: None,
@@ -726,30 +726,12 @@ impl PdfCraftApp {
         ((self.left_open && self.left == LeftPanel::Tool("form")) || matches!(self.quick_tool, QuickTool::Field(_))) && !self.form_preview
     }
 
-    /// Open a document the way it asks to be opened: navigation panel, layout, magnification,
-    /// page (Document Properties ▸ Initial View).
+    /// Honor the document's opening magnification and page. Panels and page layout follow
+    /// the user's viewer choices instead of the PDF's Initial View settings.
     fn apply_initial_view(&mut self, index: usize, v: &pdfcraft_engine::InitialView) {
-        use pdfcraft_engine::{InitialLayout as L, Magnification as M, Navigation as N};
+        use pdfcraft_engine::Magnification as M;
         let pages = self.session.get(self.views[index].id).map_or(0, |d| d.info.pages.len());
-        match v.navigation {
-            N::PageOnly => {}
-            N::Bookmarks => self.right = Some(RightPanel::Bookmarks),
-            N::Pages => self.right = Some(RightPanel::Pages),
-            N::Attachments => self.right = Some(RightPanel::Attachments),
-            N::Layers => self.right = Some(RightPanel::Layers),
-        }
         let view = &mut self.views[index];
-        match v.layout {
-            // The view opened in Default page display already.
-            L::Default => {}
-            L::SinglePage => view.layout = canvas::PageLayout::Single,
-            L::SinglePageContinuous => view.layout = canvas::PageLayout::Continuous,
-            L::TwoUp | L::TwoUpContinuous => view.layout = canvas::PageLayout::TwoUp,
-            L::TwoUpCoverPage | L::TwoUpContinuousCoverPage => {
-                view.layout = canvas::PageLayout::TwoUp;
-                view.cover = true;
-            }
-        }
         match v.magnification {
             // The view opened at the default zoom already.
             M::Default => {}
@@ -786,18 +768,10 @@ impl PdfCraftApp {
             Err(e) => return Err(e.to_string()),
         };
         self.password_prompt = None;
+        // Start every new viewer tab in dark page reading mode.
+        self.session.set_page_colors_inverted(id, true);
         let doc = self.session.get(id).ok_or("the document could not be opened")?;
         let pages = doc.info.pages.len();
-        // Acrobat opens straight to the Comments panel when a document has comments.
-        if self.right.is_none() {
-            self.right = if !doc.info.annotations.is_empty() {
-                Some(RightPanel::Comments)
-            } else if !doc.info.outline.is_empty() {
-                Some(RightPanel::Bookmarks)
-            } else {
-                None
-            };
-        }
         let initial = doc.initial_view();
         self.views.push(DocView::new(id, &doc.info, self.view_defaults));
         self.active = Some(self.views.len() - 1);

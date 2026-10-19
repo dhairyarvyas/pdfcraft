@@ -3382,8 +3382,8 @@ milestone = "M4"
 status = "shipped"
 commands = ["file.properties"]
 tools = ["doc_initial_view"]
-evidence = ["crates/organize/src/tests.rs::initial_view_round_trips_and_keeps_scripts", "crates/ui-egui/tests/viewer.rs::initial_view_is_edited_and_honoured_on_open", "crates/automation/tests/automation.rs::initial_view_through_tools"]
-notes = "navigation panel, layout, magnification, page, window and interface options; honoured on open; script open actions kept"
+evidence = ["crates/organize/src/tests.rs::initial_view_round_trips_and_keeps_scripts", "crates/ui-egui/tests/viewer.rs::initial_view_keeps_opening_page_but_respects_viewer_layout_and_panels", "crates/automation/tests/automation.rs::initial_view_through_tools"]
+notes = "navigation panel, layout, magnification, page, window and interface options can be edited; opening page and zoom are honored, while viewer panel and layout choices take precedence; script open actions kept"
 
 [[feature]]
 id = "organize.custom-properties"
@@ -8902,7 +8902,7 @@ milestone = "M12"
 status = "shipped"
 commands = ["file.properties"]
 tools = ["doc_initial_view"]
-evidence = ["crates/organize/src/tests.rs::initial_view_round_trips_and_keeps_scripts", "crates/automation/tests/automation.rs::initial_view_through_tools", "crates/ui-egui/tests/viewer.rs::initial_view_is_edited_and_honoured_on_open"]
+evidence = ["crates/organize/src/tests.rs::initial_view_round_trips_and_keeps_scripts", "crates/automation/tests/automation.rs::initial_view_through_tools", "crates/ui-egui/tests/viewer.rs::initial_view_keeps_opening_page_but_respects_viewer_layout_and_panels"]
 notes = "Document Properties ▸ Initial View ▸ Language (catalog /Lang)"
 
 [[feature]]
@@ -10022,5 +10022,5 @@ milestone = "M3"
 status = "shipped"
 commands = ["view.invert_colors"]
 tools = ["page_invert_colors"]
-evidence = ["crates/ui-egui/tests/view.rs::top_bar_inverts_page_colors_and_restores_them", "crates/automation/tests/automation.rs::page_color_inversion_is_reversible_and_does_not_edit_the_pdf"]
-notes = "Top-bar toggle inverts all rendered page RGB colors, including images, per document. Reading preference only; saved PDF bytes stay unchanged. UI pixel-toggle and headless render/save regression tests pass."
+evidence = ["crates/ui-egui/tests/view.rs::dark_pages_are_default_and_top_bar_restores_original_colors", "crates/automation/tests/automation.rs::page_color_inversion_is_reversible_and_does_not_edit_the_pdf"]
+notes = "New viewer tabs default to inverted page RGB colors, including images. The top-bar toggle restores original colors per document. Reading preference only; saved PDF bytes stay unchanged. UI pixel-toggle and headless render/save regression tests cover inversion."

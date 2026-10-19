@@ -36,6 +36,8 @@ fn harness() -> Harness<'static, PdfCraftApp> {
         let mut app = PdfCraftApp::new();
         app.open_bytes("a.pdf", None, fixture(5)).unwrap();
         app.open_bytes("b.pdf", None, fixture(2)).unwrap();
+        // These geometry tests use the tools panel's narrower reading area.
+        app.set_option("left", "open").unwrap();
         app
     });
     for _ in 0..40 {
@@ -225,7 +227,7 @@ trailer << /Root 1 0 R >>
 }
 
 #[test]
-fn initial_view_is_edited_and_honoured_on_open() {
+fn initial_view_keeps_opening_page_but_respects_viewer_layout_and_panels() {
     use pdfcraft_engine::{InitialLayout, Magnification, Navigation};
     let mut h = harness();
     h.state_mut().dialog = Some(Dialog::Properties(pdfcraft_ui_egui::PropsTab::InitialView));
@@ -247,12 +249,14 @@ fn initial_view_is_edited_and_honoured_on_open() {
     let v = s.session.get(id).unwrap().initial_view();
     assert_eq!((v.navigation, v.layout, v.page, v.language.as_deref()), (Navigation::Bookmarks, InitialLayout::TwoUpCoverPage, 1, Some("de-DE")));
     assert_eq!(s.session.get(id).unwrap().can_undo(), Some("Change document properties"));
-    // Opening the saved file follows it.
+    // Opening the saved file honors the page, while leaving panels closed and scrolling continuous.
     let bytes = s.session.save_bytes(id).unwrap();
     let mut app = PdfCraftApp::new();
     app.open_bytes("again.pdf", None, bytes.to_vec()).unwrap();
     let view = &app.views[0];
-    assert_eq!((view.current, view.cover, app.right), (1, true, Some(pdfcraft_ui_egui::RightPanel::Bookmarks)));
+    assert_eq!((view.current, view.cover, app.right), (1, false, None));
+    assert_eq!(view.layout, pdfcraft_ui_egui::canvas::PageLayout::Continuous);
+    assert!(!app.left_open);
 }
 
 fn drag(h: &mut Harness<'static, PdfCraftApp>, a: egui::Pos2, b: egui::Pos2) {
